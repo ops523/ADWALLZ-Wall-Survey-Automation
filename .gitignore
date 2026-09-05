@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test/cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated data
+data/raw/*
+data/processed/*
+output/*
+
+# Keep directory structure
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!output/.gitkeep
