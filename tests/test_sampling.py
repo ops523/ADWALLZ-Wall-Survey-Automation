@@ -68,3 +68,51 @@ def test_interval_must_be_positive():
         assert False
     except ValueError:
         assert True
+
+
+def test_reference_matching_does_not_match_partial_route_number():
+    from src.osm.roads import road_match_score
+
+    tags = {
+        "ref": "SH5",
+        "highway": "primary",
+    }
+
+    result = road_match_score(
+        "State Highway 57",
+        tags,
+    )
+
+    assert result is None
+
+
+def test_reference_matching_accepts_equivalent_format():
+    from src.osm.roads import road_match_score
+
+    tags = {
+        "ref": "SH57",
+        "highway": "primary",
+    }
+
+    result = road_match_score(
+        "State Highway 57",
+        tags,
+    )
+
+    assert result is not None
+    assert result[0] == 100
+    assert result[1] == "ref"
+    assert result[2] == "SH57"
+
+
+def test_reference_matching_accepts_hyphen_and_space():
+    from src.osm.roads import road_match_score
+
+    tags = {
+        "ref": "SH57",
+        "highway": "primary",
+    }
+
+    assert road_match_score("SH-57", tags) is not None
+    assert road_match_score("SH 57", tags) is not None
+    assert road_match_score("SH57", tags) is not None

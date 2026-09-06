@@ -1,0 +1,5 @@
+requests<3,>=2.32
+pandas<3,>=2.2
+shapely<3,>=2.0
+pyproj<4,>=3.6
+python-dotenv<2,>=1.0

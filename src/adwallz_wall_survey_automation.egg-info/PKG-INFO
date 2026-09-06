@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: adwallz-wall-survey-automation
+Version: 0.1.0
+Summary: ADWALLZ automated wall survey and discovery system
+Requires-Python: >=3.12
+Requires-Dist: requests<3,>=2.32
+Requires-Dist: pandas<3,>=2.2
+Requires-Dist: shapely<3,>=2.0
+Requires-Dist: pyproj<4,>=3.6
+Requires-Dist: python-dotenv<2,>=1.0
