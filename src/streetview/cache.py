@@ -43,12 +43,32 @@ class ImageryCache:
         latitude: float,
         longitude: float,
         radius_m: int,
+        heading: float | None = None,
     ) -> str:
-        return (
+        """
+        Build a cache key.
+
+        Heading is optional for backward compatibility.
+
+        - heading=None preserves the original cache-key format.
+        - heading-aware requests receive a separate cache entry.
+        """
+
+        base = (
             f"{provider}:"
             f"{latitude:.7f}:"
             f"{longitude:.7f}:"
             f"{radius_m}"
+        )
+
+        if heading is None:
+            return base
+
+        normalized_heading = float(heading) % 360.0
+
+        return (
+            f"{base}:"
+            f"{normalized_heading:.1f}"
         )
 
     def get(
@@ -57,12 +77,14 @@ class ImageryCache:
         latitude: float,
         longitude: float,
         radius_m: int,
+        heading: float | None = None,
     ) -> dict[str, Any] | None:
         key = self.make_key(
-            provider,
-            latitude,
-            longitude,
-            radius_m,
+            provider=provider,
+            latitude=latitude,
+            longitude=longitude,
+            radius_m=radius_m,
+            heading=heading,
         )
 
         return self._data.get(key)
@@ -74,12 +96,14 @@ class ImageryCache:
         longitude: float,
         radius_m: int,
         value: dict[str, Any],
+        heading: float | None = None,
     ) -> None:
         key = self.make_key(
-            provider,
-            latitude,
-            longitude,
-            radius_m,
+            provider=provider,
+            latitude=latitude,
+            longitude=longitude,
+            radius_m=radius_m,
+            heading=heading,
         )
 
         self._data[key] = value
