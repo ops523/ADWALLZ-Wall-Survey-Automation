@@ -4,6 +4,10 @@ import argparse
 import csv
 from pathlib import Path
 
+from src.geocoding.boundary import (
+    bbox_dimensions_km,
+    tighten_bbox,
+)
 from src.geocoding.nominatim import NominatimClient
 from src.models.target import SurveyTarget
 from src.osm.client import OverpassClient
@@ -17,12 +21,10 @@ from src.osm.sampling import (
     interpolate_every_meters,
     point_record,
 )
-from src.geocoding.boundary import (
-    bbox_dimensions_km,
-    tighten_bbox,
-)
+
 
 OUTPUT_FIELDS = [
+    "point_id",
     "state",
     "district",
     "pincode",
@@ -100,6 +102,12 @@ def parse_args() -> argparse.Namespace:
 def deduplicate_records(
     records: list[dict],
 ) -> list[dict]:
+    """
+    Remove duplicate physical survey points.
+
+    Coordinates and bearing are used rather than OSM way ID because
+    neighbouring OSM segments can represent the same physical road location.
+    """
 
     unique: dict[tuple, dict] = {}
 
@@ -115,6 +123,34 @@ def deduplicate_records(
             unique[key] = record
 
     return list(unique.values())
+
+
+def assign_point_ids(
+    records: list[dict],
+) -> list[dict]:
+    """
+    Assign deterministic survey-point IDs.
+
+    IDs are generated only after deduplication and sorting, so repeated
+    execution against the same OSM result produces stable point numbering.
+    """
+
+    ordered = sorted(
+        records,
+        key=lambda record: (
+            record["latitude"],
+            record["longitude"],
+            record["road_bearing"],
+        ),
+    )
+
+    for index, record in enumerate(
+        ordered,
+        start=1,
+    ):
+        record["point_id"] = f"SP-{index:06d}"
+
+    return ordered
 
 
 def write_csv(
@@ -167,7 +203,9 @@ def resolve_requested_roads(
         )
 
         print()
-        print("Closest available named/reference roads:")
+        print(
+            "Closest available named/reference roads:"
+        )
 
         candidates = []
 
@@ -194,7 +232,6 @@ def resolve_requested_roads(
                 )
 
         seen = set()
-
         count = 0
 
         for road_type, ref, name in candidates:
@@ -273,6 +310,11 @@ def resolve_requested_roads(
 def main() -> None:
 
     args = parse_args()
+
+    if args.interval <= 0:
+        raise ValueError(
+            "--interval must be greater than zero"
+        )
 
     target = SurveyTarget(
         state=args.state,
@@ -491,8 +533,25 @@ def main() -> None:
     )
 
     # ---------------------------------------------------------
-    # STEP 6 — Write output
+    # STEP 6 — Assign stable point IDs
     # ---------------------------------------------------------
+
+    records = assign_point_ids(
+        records
+    )
+
+    # ---------------------------------------------------------
+    # STEP 7 — Write output
+    # ---------------------------------------------------------
+
+    if not records:
+
+        print()
+        print(
+            "No valid survey points were generated."
+        )
+
+        return
 
     output = write_csv(
         records,
@@ -526,6 +585,28 @@ def main() -> None:
         f"{target.district} | "
         f"{target.pincode} | "
         f"{target.place_name}"
+    )
+
+    print()
+
+    print(
+        "Each survey point contains:"
+    )
+
+    print(
+        "  • Physical coordinates"
+    )
+
+    print(
+        "  • Road bearing"
+    )
+
+    print(
+        "  • Left-side imagery heading"
+    )
+
+    print(
+        "  • Right-side imagery heading"
     )
 
     print()

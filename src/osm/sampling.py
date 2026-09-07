@@ -51,7 +51,6 @@ def interpolate_every_meters(
         return []
 
     segments: list[tuple] = []
-
     total_distance = 0.0
 
     for (
@@ -123,9 +122,21 @@ def interpolate_every_meters(
                     distance_into_segment,
                 )
 
-                points.append(
-                    Point(lon, lat)
-                )
+                candidate = Point(lon, lat)
+
+                # Avoid duplicate points where two OSM segments meet.
+                if not points:
+                    points.append(candidate)
+                else:
+                    _, _, separation = GEOD.inv(
+                        points[-1].x,
+                        points[-1].y,
+                        candidate.x,
+                        candidate.y,
+                    )
+
+                    if separation > 0.01:
+                        points.append(candidate)
 
             target_distance += interval_m
 
@@ -162,9 +173,13 @@ def point_record(
     road_type: str | None,
     osm_way_id: int | None,
     interval_m: float,
+    point_id: str | None = None,
 ) -> dict:
     """
     Convert a sampled point into the standard survey-point record.
+
+    A single physical survey point contains two perpendicular headings:
+    heading_left and heading_right. These represent the two sides of the road.
     """
 
     road_bearing = bearing_between(
@@ -173,6 +188,7 @@ def point_record(
     )
 
     return {
+        "point_id": point_id,
         "state": state,
         "district": district,
         "pincode": str(pincode),
