@@ -44,22 +44,29 @@ class RoadResolver:
     Resolve an operator-supplied road independently of the local
     place-search bounding box.
 
-    Resolution order:
+    Resolution:
 
-        local OSM matching
-            ↓
         Nominatim road search
             ↓
         exact OSM way retrieval
             ↓
-        road identity validation
+        seed-way identity validation
+            ↓
+        connected OSM way expansion
+            ↓
+        expanded road identity validation
             ↓
         distance/confidence classification
 
-    A distant road is never silently accepted.
+    A different road is never silently substituted.
     """
 
     ROAD_SEARCH_LIMIT = 10
+
+    # Maximum number of expansion iterations from the seed ways.
+    # This prevents an incorrectly mapped road from consuming an
+    # uncontrolled portion of the OSM network.
+    DEFAULT_EXPANSION_DEPTH = 3
 
     def __init__(
         self,
@@ -67,6 +74,7 @@ class RoadResolver:
         osm_client: OverpassClient | None = None,
         road_search_radius_km: float = 20.0,
         confident_radius_km: float = 10.0,
+        expansion_depth: int = DEFAULT_EXPANSION_DEPTH,
     ) -> None:
         if road_search_radius_km <= 0:
             raise ValueError(
@@ -84,6 +92,11 @@ class RoadResolver:
                 "road_search_radius_km."
             )
 
+        if expansion_depth < 0:
+            raise ValueError(
+                "expansion_depth cannot be negative."
+            )
+
         self.geocoder = geocoder or NominatimClient()
         self.osm_client = osm_client or OverpassClient()
 
@@ -93,6 +106,10 @@ class RoadResolver:
 
         self.confident_radius_km = float(
             confident_radius_km
+        )
+
+        self.expansion_depth = int(
+            expansion_depth
         )
 
     def resolve(
@@ -130,8 +147,6 @@ class RoadResolver:
             )
         )
 
-        # Only candidates inside the configured road-search radius
-        # can become a valid resolution.
         nearby_candidates = [
             candidate
             for candidate in candidates
@@ -144,8 +159,6 @@ class RoadResolver:
         ]
 
         if not nearby_candidates:
-            # We deliberately return an unresolved result with the
-            # nearest candidate distance so the CLI can explain why.
             nearest = min(
                 candidates,
                 key=lambda candidate: haversine_km(
@@ -183,26 +196,27 @@ class RoadResolver:
             selected.longitude,
         )
 
-        if distance_km <= self.confident_radius_km:
-            confidence = "CONFIDENT"
-        else:
-            confidence = "REVIEW_REQUIRED"
+        confidence = (
+            "CONFIDENT"
+            if distance_km <= self.confident_radius_km
+            else "REVIEW_REQUIRED"
+        )
 
-        way_ids = [
+        seed_way_ids = [
             candidate.osm_id
             for candidate in nearby_candidates[:10]
         ]
 
-        roads = self._retrieve_ways(
-            way_ids
+        seed_roads = self._retrieve_ways(
+            seed_way_ids
         )
 
-        roads = self._validate_roads(
-            roads=roads,
+        seed_roads = self._validate_roads(
+            roads=seed_roads,
             requested_road=requested_road,
         )
 
-        if not roads:
+        if not seed_roads:
             return ResolvedRoad(
                 requested_name=requested_road,
                 osm_way_ids=(),
@@ -214,14 +228,28 @@ class RoadResolver:
                 matched_reference=selected.reference,
             )
 
+        expanded_roads = self._expand_connected_roads(
+            seed_roads=seed_roads,
+            requested_road=requested_road,
+        )
+
+        if not expanded_roads:
+            expanded_roads = seed_roads
+
         return ResolvedRoad(
             requested_name=requested_road,
             osm_way_ids=tuple(
-                int(road["osm_way_id"])
-                for road in roads
+                sorted(
+                    {
+                        int(road["osm_way_id"])
+                        for road in expanded_roads
+                    }
+                )
             ),
-            roads=tuple(roads),
-            method="NOMINATIM_ROAD",
+            roads=tuple(
+                expanded_roads
+            ),
+            method="NOMINATIM_ROAD_CONNECTED",
             confidence=confidence,
             distance_km=distance_km,
             matched_name=selected.name,
@@ -360,10 +388,7 @@ class RoadResolver:
                 address.get("state") or ""
             ).casefold()
 
-            if (
-                target.state.casefold().strip()
-                in state
-            ):
+            if target.state.casefold().strip() in state:
                 score += 30
 
             district_text = " ".join(
@@ -375,10 +400,7 @@ class RoadResolver:
                 )
             )
 
-            if (
-                target.district.casefold().strip()
-                in district_text
-            ):
+            if target.district.casefold().strip() in district_text:
                 score += 30
 
             if normalized_name == requested_norm:
@@ -431,6 +453,145 @@ out tags geom;
             payload.get("elements", [])
         )
 
+    def _expand_connected_roads(
+        self,
+        seed_roads: list[dict[str, Any]],
+        requested_road: str,
+    ) -> list[dict[str, Any]]:
+        """
+        Expand validated seed ways through connected OSM ways.
+
+        Expansion is intentionally conservative:
+
+        1. Find ways sharing nodes with the current frontier.
+        2. Retrieve their tags and geometry.
+        3. Accept only ways whose road identity matches the
+           requested road exactly.
+        4. Repeat for a bounded number of iterations.
+
+        A touching but differently named/referenced road is rejected.
+        """
+
+        if not seed_roads:
+            return []
+
+        accepted: dict[int, dict[str, Any]] = {
+            int(road["osm_way_id"]): road
+            for road in seed_roads
+        }
+
+        frontier = list(
+            accepted.values()
+        )
+
+        for _ in range(self.expansion_depth):
+            if not frontier:
+                break
+
+            frontier_ids = [
+                int(road["osm_way_id"])
+                for road in frontier
+            ]
+
+            candidate_ids = self._find_connected_way_ids(
+                frontier_ids
+            )
+
+            candidate_ids -= set(
+                accepted.keys()
+            )
+
+            if not candidate_ids:
+                break
+
+            candidate_roads = self._retrieve_ways(
+                sorted(candidate_ids)
+            )
+
+            validated = self._validate_roads(
+                roads=candidate_roads,
+                requested_road=requested_road,
+            )
+
+            if not validated:
+                break
+
+            frontier = []
+
+            for road in validated:
+                way_id = int(
+                    road["osm_way_id"]
+                )
+
+                if way_id in accepted:
+                    continue
+
+                accepted[way_id] = road
+                frontier.append(road)
+
+        return [
+            accepted[way_id]
+            for way_id in sorted(accepted)
+        ]
+
+    def _find_connected_way_ids(
+        self,
+        way_ids: list[int],
+    ) -> set[int]:
+        """
+        Return OSM way IDs that share at least one node with
+        the supplied seed/frontier ways.
+
+        Overpass performs the node-to-way relationship lookup.
+        """
+
+        if not way_ids:
+            return set()
+
+        unique_ids = sorted(
+            set(way_ids)
+        )
+
+        query = f"""
+[out:json][timeout:180];
+
+way(id:{",".join(map(str, unique_ids))})->.seed;
+
+(
+  way(bn.seed);
+);
+
+out ids;
+"""
+
+        payload = self.osm_client.query(
+            query
+        )
+
+        elements = payload.get(
+            "elements",
+            []
+        )
+
+        result: set[int] = set()
+
+        for element in elements:
+            if element.get("type") != "way":
+                continue
+
+            try:
+                result.add(
+                    int(element["id"])
+                )
+            except (
+                KeyError,
+                TypeError,
+                ValueError,
+            ):
+                continue
+
+        return result
+
     @staticmethod
     def _validate_roads(
         roads: list[dict[str, Any]],
@@ -438,6 +599,15 @@ out tags geom;
     ) -> list[dict[str, Any]]:
         requested_norm = normalize_road_text(
             requested_road
+        )
+
+        requested_is_reference = (
+            requested_norm.startswith("sh")
+            or requested_norm.startswith("nh")
+            or requested_norm.startswith("mdr")
+            or requested_norm.startswith("mh")
+            or requested_norm.startswith("rh")
+            or requested_norm.startswith("sr")
         )
 
         validated = []
@@ -461,18 +631,40 @@ out tags geom;
                 tags.get("route_ref"),
             ]
 
-            name_match = any(
-                requested_norm
-                == normalize_road_text(value)
+            normalized_names = [
+                normalize_road_text(value)
                 for value in names
                 if value
+            ]
+
+            normalized_references = [
+                normalize_reference(value)
+                for value in references
+                if value
+            ]
+
+            if requested_is_reference:
+                # For SH/NH/etc. requests, reference identity is
+                # authoritative. A different reference must never
+                # enter the corridor simply because its name matches.
+                reference_match = (
+                    requested_norm in normalized_references
+                )
+
+                if reference_match:
+                    validated.append(road)
+
+                continue
+
+            # Named-road request.
+            name_match = any(
+                requested_norm == normalized_name
+                for normalized_name in normalized_names
             )
 
             reference_match = any(
-                requested_norm
-                == normalize_reference(value)
-                for value in references
-                if value
+                requested_norm == normalized_reference
+                for normalized_reference in normalized_references
             )
 
             if name_match or reference_match:

@@ -9,6 +9,11 @@ from src.geocoding.boundary import (
     tighten_bbox,
 )
 from src.geocoding.nominatim import NominatimClient
+from src.geocoding.road_resolver import (
+    RoadResolver,
+    ResolvedRoad,
+    print_resolution_result,
+)
 from src.models.target import SurveyTarget
 from src.osm.client import OverpassClient
 from src.osm.roads import (
@@ -42,7 +47,6 @@ OUTPUT_FIELDS = [
 
 
 def parse_args() -> argparse.Namespace:
-
     parser = argparse.ArgumentParser(
         description=(
             "ADWALLZ Wall Survey Automation - "
@@ -50,30 +54,11 @@ def parse_args() -> argparse.Namespace:
         )
     )
 
-    parser.add_argument(
-        "--state",
-        required=True,
-    )
-
-    parser.add_argument(
-        "--district",
-        required=True,
-    )
-
-    parser.add_argument(
-        "--pincode",
-        required=True,
-    )
-
-    parser.add_argument(
-        "--place",
-        required=True,
-    )
-
-    parser.add_argument(
-        "--road",
-        default=None,
-    )
+    parser.add_argument("--state", required=True)
+    parser.add_argument("--district", required=True)
+    parser.add_argument("--pincode", required=True)
+    parser.add_argument("--place", required=True)
+    parser.add_argument("--road", default=None)
 
     parser.add_argument(
         "--interval",
@@ -96,23 +81,40 @@ def parse_args() -> argparse.Namespace:
         ),
     )
 
+    parser.add_argument(
+        "--road-search-radius-km",
+        type=float,
+        default=20.0,
+        help=(
+            "Maximum radius for targeted road resolution. "
+            "Default: 20"
+        ),
+    )
+
+    parser.add_argument(
+        "--road-confident-radius-km",
+        type=float,
+        default=10.0,
+        help=(
+            "Maximum distance for automatic road acceptance. "
+            "Roads beyond this distance require review. "
+            "Default: 10"
+        ),
+    )
+
     return parser.parse_args()
 
 
-def deduplicate_records(
-    records: list[dict],
-) -> list[dict]:
+def deduplicate_records(records: list[dict]) -> list[dict]:
     """
     Remove duplicate physical survey points.
 
     Coordinates and bearing are used rather than OSM way ID because
     neighbouring OSM segments can represent the same physical road location.
     """
-
     unique: dict[tuple, dict] = {}
 
     for record in records:
-
         key = (
             round(record["latitude"], 7),
             round(record["longitude"], 7),
@@ -125,16 +127,10 @@ def deduplicate_records(
     return list(unique.values())
 
 
-def assign_point_ids(
-    records: list[dict],
-) -> list[dict]:
+def assign_point_ids(records: list[dict]) -> list[dict]:
     """
     Assign deterministic survey-point IDs.
-
-    IDs are generated only after deduplication and sorting, so repeated
-    execution against the same OSM result produces stable point numbering.
     """
-
     ordered = sorted(
         records,
         key=lambda record: (
@@ -144,10 +140,7 @@ def assign_point_ids(
         ),
     )
 
-    for index, record in enumerate(
-        ordered,
-        start=1,
-    ):
+    for index, record in enumerate(ordered, start=1):
         record["point_id"] = f"SP-{index:06d}"
 
     return ordered
@@ -157,7 +150,6 @@ def write_csv(
     records: list[dict],
     output_path: str,
 ) -> Path:
-
     output = Path(output_path)
 
     output.parent.mkdir(
@@ -170,7 +162,6 @@ def write_csv(
         newline="",
         encoding="utf-8",
     ) as handle:
-
         writer = csv.DictWriter(
             handle,
             fieldnames=OUTPUT_FIELDS,
@@ -182,138 +173,275 @@ def write_csv(
     return output
 
 
+def print_local_road_candidates(
+    roads: list[dict],
+) -> None:
+    print()
+    print("Closest available named/reference roads:")
+
+    candidates = []
+
+    for road in roads:
+        tags = road.get("tags") or {}
+
+        name = (
+            tags.get("name")
+            or tags.get("official_name")
+            or tags.get("alt_name")
+            or ""
+        )
+
+        ref = tags.get("ref") or ""
+
+        if name or ref:
+            candidates.append(
+                (
+                    road.get("road_type") or "",
+                    ref,
+                    name,
+                )
+            )
+
+    seen = set()
+    count = 0
+
+    for road_type, ref, name in candidates:
+        key = (
+            road_type,
+            ref,
+            name,
+        )
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+
+        print(
+            f"  {road_type:<12} "
+            f"ref={ref or '-':<12} "
+            f"name={name or '-'}"
+        )
+
+        count += 1
+
+        if count >= 20:
+            break
+
+
 def resolve_requested_roads(
     roads: list[dict],
     requested_road: str | None,
+    resolver: RoadResolver | None = None,
+    target: SurveyTarget | None = None,
+    origin_latitude: float | None = None,
+    origin_longitude: float | None = None,
 ) -> list[dict]:
+    """
+    Resolve an operator-requested road.
+
+    Resolution order:
+
+        1. Exact/safe local OSM match
+        2. Targeted Nominatim road resolution
+        3. Exact OSM way validation
+
+    A different road is never silently substituted.
+    """
 
     if not requested_road:
         return roads
 
-    matches = find_road_matches(
+    local_matches = find_road_matches(
         roads,
         requested_road,
     )
 
-    if not matches:
+    if local_matches:
+        best_score = local_matches[0].score
+
+        selected = [
+            match.road
+            for match in local_matches
+            if match.score == best_score
+        ]
 
         print()
-        print(
-            f'No confident OSM match found for road: "{requested_road}"'
-        )
+        print("Local road resolver:")
+        print(f'  Requested : "{requested_road}"')
+        print(f"  Matches   : {len(local_matches)}")
+        print(f"  Best score: {best_score}")
+        print("  Selected:")
 
-        print()
-        print(
-            "Closest available named/reference roads:"
-        )
-
-        candidates = []
-
-        for road in roads:
-
-            tags = road.get("tags") or {}
-
-            name = (
-                tags.get("name")
-                or tags.get("official_name")
-                or tags.get("alt_name")
-                or ""
-            )
-
-            ref = tags.get("ref") or ""
-
-            if name or ref:
-                candidates.append(
-                    (
-                        road.get("road_type") or "",
-                        ref,
-                        name,
-                    )
-                )
-
-        seen = set()
-        count = 0
-
-        for road_type, ref, name in candidates:
-
-            key = (
-                road_type,
-                ref,
-                name,
-            )
-
-            if key in seen:
-                continue
-
-            seen.add(key)
+        for match in local_matches[:10]:
+            road = match.road
 
             print(
-                f"  {road_type:<12} "
-                f"ref={ref or '-':<12} "
-                f"name={name or '-'}"
+                f"    score={match.score:<3} "
+                f"field={match.matched_field:<14} "
+                f"value={match.matched_value} "
+                f"osm_way={road.get('osm_way_id')}"
             )
 
-            count += 1
+        return selected
 
-            if count >= 20:
-                break
+    print()
+    print(
+        f'No local OSM match found for road: "{requested_road}"'
+    )
 
+    print(
+        "The system will attempt targeted road resolution."
+    )
+
+    print_local_road_candidates(roads)
+
+    if (
+        resolver is None
+        or target is None
+        or origin_latitude is None
+        or origin_longitude is None
+    ):
         print()
         print(
-            "The system will NOT automatically select a different "
-            "road because that could survey the wrong corridor."
+            "Targeted road resolver was not configured."
         )
+        print(
+            "Road resolution failed safely."
+        )
+        return []
+
+    resolved: ResolvedRoad | None = resolver.resolve(
+        target=target,
+        requested_road=requested_road,
+        origin_latitude=origin_latitude,
+        origin_longitude=origin_longitude,
+    )
+
+    print_resolution_result(resolved)
+
+    if resolved is None:
+        print()
+        print(
+            "Road resolution failed safely."
+        )
+        return []
+
+    if resolved.confidence != "CONFIDENT":
+        print()
+
+        if resolved.confidence == "REVIEW_REQUIRED":
+            print(
+                "Road resolution requires human review."
+            )
+            print(
+                "No survey points will be generated."
+            )
+        else:
+            print(
+                "Road resolution is unresolved."
+            )
+            print(
+                "No survey points will be generated."
+            )
 
         return []
 
-    best_score = matches[0].score
-
-    selected = [
-        match.road
-        for match in matches
-        if match.score == best_score
-    ]
+    if not resolved.roads:
+        print()
+        print(
+            "Road resolver returned no validated OSM ways."
+        )
+        print(
+            "No survey points will be generated."
+        )
+        return []
 
     print()
-    print("Road resolver:")
-
     print(
-        f'  Requested : "{requested_road}"'
+        f"Targeted road resolution accepted "
+        f"{len(resolved.roads)} OSM way(s)."
     )
 
-    print(
-        f"  Matches   : {len(matches)}"
-    )
+    return list(resolved.roads)
 
-    print(
-        f"  Best score: {best_score}"
-    )
 
-    print(
-        "  Selected:"
-    )
+def generate_records(
+    roads: list[dict],
+    target: SurveyTarget,
+) -> list[dict]:
+    records: list[dict] = []
 
-    for match in matches[:10]:
+    for road in roads:
+        geometry = road["geometry"]
 
-        road = match.road
-
-        print(
-            f"    score={match.score:<3} "
-            f"field={match.matched_field:<14} "
-            f"value={match.matched_value} "
-            f"osm_way={road.get('osm_way_id')}"
+        points = interpolate_every_meters(
+            geometry,
+            target.sampling_interval_m,
         )
 
-    return selected
+        if len(points) < 2:
+            continue
+
+        for index, point in enumerate(points):
+            previous = points[
+                max(0, index - 1)
+            ]
+
+            following = points[
+                min(
+                    len(points) - 1,
+                    index + 1,
+                )
+            ]
+
+            if previous.equals(following):
+                continue
+
+            record = point_record(
+                point=point,
+                previous=previous,
+                following=following,
+                state=target.state,
+                district=target.district,
+                pincode=target.pincode,
+                place_name=target.place_name,
+                road_name=road["road_name"],
+                road_type=road["road_type"],
+                osm_way_id=road["osm_way_id"],
+                interval_m=target.sampling_interval_m,
+            )
+
+            records.append(record)
+
+    return records
 
 
 def main() -> None:
-
     args = parse_args()
 
     if args.interval <= 0:
         raise ValueError(
             "--interval must be greater than zero"
+        )
+
+    if args.road_search_radius_km <= 0:
+        raise ValueError(
+            "--road-search-radius-km must be greater than zero"
+        )
+
+    if args.road_confident_radius_km <= 0:
+        raise ValueError(
+            "--road-confident-radius-km must be greater than zero"
+        )
+
+    if (
+        args.road_confident_radius_km
+        > args.road_search_radius_km
+    ):
+        raise ValueError(
+            "--road-confident-radius-km cannot exceed "
+            "--road-search-radius-km"
         )
 
     target = SurveyTarget(
@@ -328,12 +456,11 @@ def main() -> None:
     print()
     print("=" * 70)
     print("ADWALLZ WALL SURVEY AUTOMATION")
-    print("PACK 1A — TARGET & ROAD RESOLUTION")
+    print("PACK 1A-C — TARGETED ROAD RESOLUTION")
     print("=" * 70)
     print()
 
     print("Target:")
-
     print(f"  State   : {target.state}")
     print(f"  District: {target.district}")
     print(f"  Pincode : {target.pincode}")
@@ -348,11 +475,6 @@ def main() -> None:
     )
 
     print()
-
-    # ---------------------------------------------------------
-    # STEP 1 — Resolve target
-    # ---------------------------------------------------------
-
     print(
         "1. Resolving target using Nominatim..."
     )
@@ -414,10 +536,6 @@ def main() -> None:
         f"{height_km:.2f} km × {width_km:.2f} km"
     )
 
-    # ---------------------------------------------------------
-    # STEP 2 — Retrieve geographic road network
-    # ---------------------------------------------------------
-
     print()
     print(
         "2. Querying OpenStreetMap / Overpass..."
@@ -433,135 +551,87 @@ def main() -> None:
 
     payload = osm_client.query(query)
 
-    roads = elements_to_lines(
+    local_roads = elements_to_lines(
         payload.get("elements", [])
     )
 
     print(
         f"   Road segments retrieved: "
-        f"{len(roads)}"
+        f"{len(local_roads)}"
     )
 
-    if not roads:
-
+    if not local_roads:
         print()
         print(
             "No road segments were found."
         )
-
         return
 
-    # ---------------------------------------------------------
-    # STEP 3 — Resolve requested road
-    # ---------------------------------------------------------
+    resolver = RoadResolver(
+        geocoder=geocoder,
+        osm_client=osm_client,
+        road_search_radius_km=args.road_search_radius_km,
+        confident_radius_km=args.road_confident_radius_km,
+    )
 
     roads = resolve_requested_roads(
-        roads,
-        target.road_name,
+        roads=local_roads,
+        requested_road=target.road_name,
+        resolver=resolver,
+        target=target,
+        origin_latitude=resolved.latitude,
+        origin_longitude=resolved.longitude,
     )
 
     if not roads:
-
         print()
         print(
-            "Road resolution failed safely."
+            "No safe road corridor was resolved."
         )
-
+        print(
+            "Stopping before survey-point generation."
+        )
         return
-
-    # ---------------------------------------------------------
-    # STEP 4 — Sample roads
-    # ---------------------------------------------------------
 
     print()
     print(
         "3. Generating survey points..."
     )
 
-    records: list[dict] = []
-
-    for road in roads:
-
-        geometry = road["geometry"]
-
-        points = interpolate_every_meters(
-            geometry,
-            target.sampling_interval_m,
-        )
-
-        if len(points) < 2:
-            continue
-
-        for index, point in enumerate(points):
-
-            previous = points[
-                max(0, index - 1)
-            ]
-
-            following = points[
-                min(
-                    len(points) - 1,
-                    index + 1,
-                )
-            ]
-
-            if previous.equals(following):
-                continue
-
-            record = point_record(
-                point=point,
-                previous=previous,
-                following=following,
-                state=target.state,
-                district=target.district,
-                pincode=target.pincode,
-                place_name=target.place_name,
-                road_name=road["road_name"],
-                road_type=road["road_type"],
-                osm_way_id=road["osm_way_id"],
-                interval_m=target.sampling_interval_m,
-            )
-
-            records.append(record)
-
-    # ---------------------------------------------------------
-    # STEP 5 — Deduplicate
-    # ---------------------------------------------------------
-
-    records = deduplicate_records(
-        records
+    records = generate_records(
+        roads=roads,
+        target=target,
     )
 
-    # ---------------------------------------------------------
-    # STEP 6 — Assign stable point IDs
-    # ---------------------------------------------------------
-
-    records = assign_point_ids(
-        records
+    print(
+        f"   Raw survey points: "
+        f"{len(records)}"
     )
 
-    # ---------------------------------------------------------
-    # STEP 7 — Write output
-    # ---------------------------------------------------------
+    print()
+    print(
+        "4. Deduplicating physical survey points..."
+    )
+
+    records = deduplicate_records(records)
+
+    print(
+        f"   Unique survey points: "
+        f"{len(records)}"
+    )
+
+    records = assign_point_ids(records)
 
     if not records:
-
         print()
         print(
             "No valid survey points were generated."
         )
-
         return
 
     output = write_csv(
         records,
         args.output,
-    )
-
-    print()
-    print(
-        f"   Survey points generated: "
-        f"{len(records)}"
     )
 
     print()
@@ -574,12 +644,12 @@ def main() -> None:
         f"Output: {output}"
     )
 
-    print()
-
     print(
-        "Every survey point retains:"
+        f"Survey points: {len(records)}"
     )
 
+    print()
+    print("Identity retained for every point:")
     print(
         f"  {target.state} | "
         f"{target.district} | "
@@ -588,28 +658,12 @@ def main() -> None:
     )
 
     print()
-
-    print(
-        "Each survey point contains:"
-    )
-
-    print(
-        "  • Physical coordinates"
-    )
-
-    print(
-        "  • Road bearing"
-    )
-
-    print(
-        "  • Left-side imagery heading"
-    )
-
-    print(
-        "  • Right-side imagery heading"
-    )
-
-    print()
+    print("Each physical survey point contains:")
+    print("  • Coordinates")
+    print("  • Road bearing")
+    print("  • Left-side imagery heading")
+    print("  • Right-side imagery heading")
+    print("  • OSM way ID")
 
 
 if __name__ == "__main__":
