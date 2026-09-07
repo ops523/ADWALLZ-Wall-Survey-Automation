@@ -12,23 +12,15 @@ from src.models.target import SurveyTarget
 class GeocodedTarget:
     """
     Geographic result returned by Nominatim.
-
-    The original target values are retained separately from the normalized
-    address returned by the geocoder.
     """
 
     target: SurveyTarget
-
     latitude: float
     longitude: float
-
     display_name: str
-
     osm_type: str | None
     osm_id: int | None
-
     bounding_box: tuple[float, float, float, float] | None
-
     address: dict[str, str]
 
     @property
@@ -39,26 +31,22 @@ class GeocodedTarget:
 class NominatimClient:
     """
     Client for OpenStreetMap Nominatim.
-
-    Nominatim is used here to resolve and validate the requested target.
     """
 
     def __init__(
         self,
         url: str | None = None,
         user_agent: str | None = None,
+        session=None,
     ) -> None:
         self.url = url or settings.nominatim_url
         self.user_agent = user_agent or settings.osm_user_agent
+        self.session = session or requests.Session()
 
-    def search(self, target: SurveyTarget) -> list[dict]:
-        """
-        Search using the complete target identity.
-
-        Pincode is explicitly included in the query to avoid accidentally
-        resolving a duplicate place name elsewhere.
-        """
-
+    def search(
+        self,
+        target: SurveyTarget,
+    ) -> list[dict]:
         query = (
             f"{target.place_name}, "
             f"{target.district}, "
@@ -74,10 +62,12 @@ class NominatimClient:
             "countrycodes": "in",
         }
 
-        response = requests.get(
+        response = self.session.get(
             self.url,
             params=params,
-            headers={"User-Agent": self.user_agent},
+            headers={
+                "User-Agent": self.user_agent,
+            },
             timeout=60,
         )
 
@@ -89,15 +79,6 @@ class NominatimClient:
         self,
         target: SurveyTarget,
     ) -> GeocodedTarget:
-        """
-        Resolve a target and select the best matching result.
-
-        We intentionally require the returned result to be reasonably
-        consistent with the supplied pincode. If Nominatim does not expose
-        a postcode, we do not invent one; the original target pincode remains
-        authoritative for downstream records.
-        """
-
         results = self.search(target)
 
         if not results:
@@ -106,7 +87,10 @@ class NominatimClient:
                 f"{target.target_key}"
             )
 
-        result = self._select_best_result(results, target)
+        result = self._select_best_result(
+            results,
+            target,
+        )
 
         lat = float(result["lat"])
         lon = float(result["lon"])
@@ -116,8 +100,6 @@ class NominatimClient:
         raw_bbox = result.get("boundingbox")
 
         if raw_bbox and len(raw_bbox) == 4:
-            # Nominatim order:
-            # south, north, west, east
             bbox = (
                 float(raw_bbox[0]),
                 float(raw_bbox[1]),
@@ -129,7 +111,10 @@ class NominatimClient:
             target=target,
             latitude=lat,
             longitude=lon,
-            display_name=result.get("display_name", ""),
+            display_name=result.get(
+                "display_name",
+                "",
+            ),
             osm_type=result.get("osm_type"),
             osm_id=(
                 int(result["osm_id"])
@@ -139,7 +124,9 @@ class NominatimClient:
             bounding_box=bbox,
             address={
                 str(k): str(v)
-                for k, v in (result.get("address") or {}).items()
+                for k, v in (
+                    result.get("address") or {}
+                ).items()
             },
         )
 
@@ -148,16 +135,18 @@ class NominatimClient:
         results: list[dict],
         target: SurveyTarget,
     ) -> dict:
-        """
-        Score Nominatim results against the requested target.
+        target_state = (
+            target.state.casefold().strip()
+        )
 
-        Pincode receives the strongest score because it is the key
-        disambiguation field.
-        """
+        target_district = (
+            target.district.casefold().strip()
+        )
 
-        target_state = target.state.casefold().strip()
-        target_district = target.district.casefold().strip()
-        target_place = target.place_name.casefold().strip()
+        target_place = (
+            target.place_name.casefold().strip()
+        )
+
         target_pincode = target.pincode.strip()
 
         scored: list[tuple[int, dict]] = []
@@ -192,7 +181,10 @@ class NominatimClient:
                 for value in district_values
             )
 
-            if target_district and target_district in district_text:
+            if (
+                target_district
+                and target_district in district_text
+            ):
                 score += 30
 
             place_values = [
@@ -218,9 +210,14 @@ class NominatimClient:
             if target_place and target_place in display_name:
                 score += 10
 
-            scored.append((score, result))
+            scored.append(
+                (score, result)
+            )
 
-        scored.sort(key=lambda item: item[0], reverse=True)
+        scored.sort(
+            key=lambda item: item[0],
+            reverse=True,
+        )
 
         best_score, best_result = scored[0]
 
