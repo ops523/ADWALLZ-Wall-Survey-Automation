@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import requests
+
 from src.geocoding.boundary import haversine_km
 from src.geocoding.nominatim import NominatimClient
 from src.models.target import SurveyTarget
@@ -38,6 +40,13 @@ class ResolvedRoad:
     matched_name: str
     matched_reference: str | None
 
+    # Pack 1A-E:
+    # These fields make partial resolution explicit without
+    # breaking existing callers that construct ResolvedRoad
+    # positionally.
+    expansion_status: str = "NOT_ATTEMPTED"
+    expansion_error: str | None = None
+
 
 class RoadResolver:
     """
@@ -59,14 +68,32 @@ class RoadResolver:
         distance/confidence classification
 
     A different road is never silently substituted.
+
+    Pack 1A-E additionally makes Overpass failures resilient:
+
+        Seed retrieval failure
+            → UNRESOLVED
+
+        Expansion failure
+            → retain validated seed roads
+            → mark expansion as FAILED
+
+    This means a transient Overpass outage cannot invalidate an
+    already-validated road identity, while also preventing survey
+    point generation when no road geometry was successfully
+    retrieved.
     """
 
     ROAD_SEARCH_LIMIT = 10
 
-    # Maximum number of expansion iterations from the seed ways.
-    # This prevents an incorrectly mapped road from consuming an
-    # uncontrolled portion of the OSM network.
     DEFAULT_EXPANSION_DEPTH = 3
+
+    # Number of attempts for an Overpass operation.
+    OVERPASS_RETRIES = 2
+
+    # Maximum number of ways retrieved in one Overpass request.
+    # Smaller requests are less likely to trigger gateway limits.
+    OVERPASS_BATCH_SIZE = 25
 
     def __init__(
         self,
@@ -185,6 +212,7 @@ class RoadResolver:
                 distance_km=distance_km,
                 matched_name=nearest.name,
                 matched_reference=nearest.reference,
+                expansion_status="NOT_ATTEMPTED",
             )
 
         selected = nearby_candidates[0]
@@ -207,9 +235,30 @@ class RoadResolver:
             for candidate in nearby_candidates[:10]
         ]
 
-        seed_roads = self._retrieve_ways(
-            seed_way_ids
-        )
+        # ---------------------------------------------------------
+        # Pack 1A-E: seed retrieval is mandatory.
+        #
+        # Without road geometry we cannot safely generate survey
+        # points. A transient Overpass failure therefore results in
+        # an explicit UNRESOLVED result rather than an exception.
+        # ---------------------------------------------------------
+        try:
+            seed_roads = self._retrieve_ways(
+                seed_way_ids
+            )
+        except requests.RequestException as exc:
+            return ResolvedRoad(
+                requested_name=requested_road,
+                osm_way_ids=(),
+                roads=(),
+                method="NOMINATIM_ROAD_OVERPASS_UNAVAILABLE",
+                confidence="UNRESOLVED",
+                distance_km=distance_km,
+                matched_name=selected.name,
+                matched_reference=selected.reference,
+                expansion_status="NOT_ATTEMPTED",
+                expansion_error=str(exc),
+            )
 
         seed_roads = self._validate_roads(
             roads=seed_roads,
@@ -226,15 +275,46 @@ class RoadResolver:
                 distance_km=distance_km,
                 matched_name=selected.name,
                 matched_reference=selected.reference,
+                expansion_status="NOT_ATTEMPTED",
             )
 
-        expanded_roads = self._expand_connected_roads(
-            seed_roads=seed_roads,
-            requested_road=requested_road,
-        )
+        # ---------------------------------------------------------
+        # Pack 1A-E:
+        #
+        # Expansion is best-effort. A failure here must NOT discard
+        # already validated seed roads.
+        # ---------------------------------------------------------
+        expansion_status = "NOT_ATTEMPTED"
+        expansion_error: str | None = None
 
-        if not expanded_roads:
+        if self.expansion_depth > 0:
+            try:
+                expanded_roads = self._expand_connected_roads(
+                    seed_roads=seed_roads,
+                    requested_road=requested_road,
+                )
+
+                if expanded_roads:
+                    expansion_status = "SUCCESS"
+                else:
+                    # The seed roads remain valid even if expansion
+                    # simply finds nothing additional.
+                    expanded_roads = seed_roads
+                    expansion_status = "NO_ADDITIONAL_ROADS"
+
+            except requests.RequestException as exc:
+                # Critical safety rule:
+                #
+                # We DO NOT replace the road.
+                # We DO NOT retry with another nearby road.
+                # We retain only the already validated seed roads.
+                expanded_roads = seed_roads
+                expansion_status = "FAILED"
+                expansion_error = str(exc)
+
+        else:
             expanded_roads = seed_roads
+            expansion_status = "DISABLED"
 
         return ResolvedRoad(
             requested_name=requested_road,
@@ -249,11 +329,17 @@ class RoadResolver:
             roads=tuple(
                 expanded_roads
             ),
-            method="NOMINATIM_ROAD_CONNECTED",
+            method=(
+                "NOMINATIM_ROAD_CONNECTED"
+                if expansion_status == "SUCCESS"
+                else "NOMINATIM_ROAD_SEED"
+            ),
             confidence=confidence,
             distance_km=distance_km,
             matched_name=selected.name,
             matched_reference=selected.reference,
+            expansion_status=expansion_status,
+            expansion_error=expansion_error,
         )
 
     def _search_nominatim(
@@ -432,6 +518,15 @@ class RoadResolver:
         self,
         way_ids: list[int],
     ) -> list[dict[str, Any]]:
+        """
+        Retrieve OSM way geometry in small batches.
+
+        Pack 1A-E deliberately avoids sending a large list of ways
+        through one public Overpass request. Each batch is retried,
+        reducing the probability that a transient gateway failure
+        destroys an otherwise valid road resolution.
+        """
+
         if not way_ids:
             return []
 
@@ -439,18 +534,62 @@ class RoadResolver:
             set(way_ids)
         )
 
-        query = f"""
+        roads: list[dict[str, Any]] = []
+
+        for start in range(
+            0,
+            len(unique_ids),
+            self.OVERPASS_BATCH_SIZE,
+        ):
+            batch = unique_ids[
+                start:start + self.OVERPASS_BATCH_SIZE
+            ]
+
+            query = f"""
 [out:json][timeout:180];
-way(id:{",".join(map(str, unique_ids))});
+way(id:{",".join(map(str, batch))});
 out tags geom;
 """
 
-        payload = self.osm_client.query(
-            query
-        )
+            payload = self._query_overpass_with_retry(
+                query
+            )
 
-        return elements_to_lines(
-            payload.get("elements", [])
+            batch_roads = elements_to_lines(
+                payload.get("elements", [])
+            )
+
+            roads.extend(batch_roads)
+
+        return roads
+
+    def _query_overpass_with_retry(
+        self,
+        query: str,
+    ) -> dict:
+        """
+        Execute an Overpass query with bounded retries.
+
+        The original exception is re-raised after all attempts so
+        the caller can distinguish infrastructure failure from
+        an empty/invalid OSM result.
+        """
+
+        last_error: requests.RequestException | None = None
+
+        for _ in range(self.OVERPASS_RETRIES):
+            try:
+                return self.osm_client.query(
+                    query
+                )
+            except requests.RequestException as exc:
+                last_error = exc
+
+        if last_error is not None:
+            raise last_error
+
+        raise RuntimeError(
+            "Overpass query failed without an exception."
         )
 
     def _expand_connected_roads(
@@ -470,6 +609,10 @@ out tags geom;
         4. Repeat for a bounded number of iterations.
 
         A touching but differently named/referenced road is rejected.
+
+        Overpass errors are deliberately allowed to propagate to
+        resolve(), where Pack 1A-E converts them into a partial
+        seed-only resolution.
         """
 
         if not seed_roads:
@@ -564,7 +707,7 @@ way(id:{",".join(map(str, unique_ids))})->.seed;
 out ids;
 """
 
-        payload = self.osm_client.query(
+        payload = self._query_overpass_with_retry(
             query
         )
 
@@ -713,6 +856,29 @@ def print_resolution_result(
         f"  OSM ref    : "
         f"{result.matched_reference or '-'}"
     )
+
+    expansion_status = getattr(
+        result,
+        "expansion_status",
+        "NOT_REPORTED",
+    )
+
+    expansion_error = getattr(
+        result,
+        "expansion_error",
+        None,
+    )
+
+    print(
+        f"  Expansion  : "
+        f"{expansion_status}"
+    )
+
+    if expansion_error:
+        print(
+            f"  Exp. error : "
+            f"{expansion_error}"
+        )
 
     print(
         "  Way IDs    : "
