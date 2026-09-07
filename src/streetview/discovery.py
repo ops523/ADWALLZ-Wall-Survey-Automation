@@ -15,11 +15,33 @@ from src.streetview.providers.base import StreetImageryProvider
 
 @dataclass(frozen=True)
 class ProviderAttempt:
+    """
+    Record of one provider attempt during discovery.
+    """
+
     provider: str
     status: str
+    error_type: str | None = None
+    error_message: str | None = None
 
 
 class ImageryDiscovery:
+    """
+    Provider-neutral street imagery discovery orchestrator.
+
+    Providers are attempted in the order supplied to the constructor.
+
+    Fallback rules:
+    - AVAILABLE -> return immediately.
+    - NOT_AVAILABLE -> continue to next provider.
+    - ERROR -> continue to next provider.
+    - Provider exception -> record ERROR and continue.
+    - No provider succeeds -> NOT_AVAILABLE.
+
+    The caller never needs to know how an image was obtained.
+    Provider provenance remains available in DiscoveryResult.metadata.
+    """
+
     def __init__(
         self,
         providers: list[StreetImageryProvider],
@@ -72,7 +94,19 @@ class ImageryDiscovery:
         attempts: list[ProviderAttempt] = []
 
         for provider in self.providers:
-            result = provider.find_nearby(query)
+            try:
+                result = provider.find_nearby(query)
+
+            except Exception as exc:
+                attempts.append(
+                    ProviderAttempt(
+                        provider=provider.name,
+                        status="ERROR",
+                        error_type=type(exc).__name__,
+                        error_message=str(exc),
+                    )
+                )
+                continue
 
             attempts.append(
                 ProviderAttempt(
@@ -96,13 +130,9 @@ class ImageryDiscovery:
                     metadata={
                         **result.metadata,
                         "requested_heading": requested_heading,
-                        "attempts": [
-                            {
-                                "provider": attempt.provider,
-                                "status": attempt.status,
-                            }
-                            for attempt in attempts
-                        ],
+                        "attempts": self._attempts_metadata(
+                            attempts
+                        ),
                     },
                 )
 
@@ -115,9 +145,6 @@ class ImageryDiscovery:
                 )
 
                 return discovery_result
-
-            if result.status == "ERROR":
-                continue
 
         discovery_result = DiscoveryResult(
             latitude=latitude,
@@ -132,13 +159,9 @@ class ImageryDiscovery:
             image_url=None,
             metadata={
                 "requested_heading": requested_heading,
-                "attempts": [
-                    {
-                        "provider": attempt.provider,
-                        "status": attempt.status,
-                    }
-                    for attempt in attempts
-                ],
+                "attempts": self._attempts_metadata(
+                    attempts
+                ),
             },
         )
 
@@ -254,6 +277,26 @@ class ImageryDiscovery:
                 "metadata": result.metadata,
             },
         )
+
+    @staticmethod
+    def _attempts_metadata(
+        attempts: list[ProviderAttempt],
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "provider": attempt.provider,
+                "status": attempt.status,
+                **(
+                    {
+                        "error_type": attempt.error_type,
+                        "error_message": attempt.error_message,
+                    }
+                    if attempt.error_type is not None
+                    else {}
+                ),
+            }
+            for attempt in attempts
+        ]
 
     @staticmethod
     def _result_from_cache(
