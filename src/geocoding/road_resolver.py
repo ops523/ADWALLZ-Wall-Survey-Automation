@@ -7,6 +7,10 @@ import requests
 
 from src.geocoding.boundary import haversine_km
 from src.geocoding.nominatim import NominatimClient
+from src.geocoding.road_identity_registry import (
+    DEFAULT_ROAD_IDENTITY_REGISTRY,
+    RoadIdentityRegistry,
+)
 from src.models.target import SurveyTarget
 from src.osm.client import OverpassClient
 from src.osm.roads import (
@@ -69,19 +73,21 @@ class RoadResolver:
 
     A different road is never silently substituted.
 
-    Pack 1A-E additionally makes Overpass failures resilient:
+    Pack 1A-F additionally supports geographically scoped
+    historical/current road identities.
 
-        Seed retrieval failure
-            → UNRESOLVED
+    Example:
 
-        Expansion failure
-            → retain validated seed roads
-            → mark expansion as FAILED
+        historical SH57
+            ↓
+        verified registry mapping
+            ↓
+        current NH67
+            ↓
+        normal OSM validation
 
-    This means a transient Overpass outage cannot invalidate an
-    already-validated road identity, while also preventing survey
-    point generation when no road geometry was successfully
-    retrieved.
+    The registry never supplies geometry and never acts as a
+    global road alias table.
     """
 
     ROAD_SEARCH_LIMIT = 10
@@ -99,6 +105,7 @@ class RoadResolver:
         self,
         geocoder: NominatimClient | None = None,
         osm_client: OverpassClient | None = None,
+        road_identity_registry: RoadIdentityRegistry | None = None,
         road_search_radius_km: float = 20.0,
         confident_radius_km: float = 10.0,
         expansion_depth: int = DEFAULT_EXPANSION_DEPTH,
@@ -127,6 +134,11 @@ class RoadResolver:
         self.geocoder = geocoder or NominatimClient()
         self.osm_client = osm_client or OverpassClient()
 
+        self.road_identity_registry = (
+            road_identity_registry
+            or DEFAULT_ROAD_IDENTITY_REGISTRY
+        )
+
         self.road_search_radius_km = float(
             road_search_radius_km
         )
@@ -153,6 +165,12 @@ class RoadResolver:
                 "requested_road must not be empty."
             )
 
+        # Preserve the operator's original request for auditability.
+        original_requested_road = requested_road
+
+        # ---------------------------------------------------------
+        # Step 1: Direct road resolution.
+        # ---------------------------------------------------------
         results = self._search_nominatim(
             target=target,
             requested_road=requested_road,
@@ -164,8 +182,52 @@ class RoadResolver:
             requested_road=requested_road,
         )
 
+        # ---------------------------------------------------------
+        # Pack 1A-F:
+        #
+        # If the historical/reference road is no longer represented
+        # directly in OSM, consult the geographically scoped road
+        # identity registry.
+        #
+        # The registry NEVER supplies geometry.
+        # It only supplies a verified current road identity.
+        #
+        # That current identity must then pass the normal OSM
+        # resolution and validation pipeline.
+        # ---------------------------------------------------------
+        identity_match = None
+
         if not candidates:
-            return None
+            identity_match = self.road_identity_registry.find(
+                requested_reference=requested_road,
+                state=target.state,
+                district=target.district,
+                pincode=target.pincode,
+                place_name=target.place_name,
+            )
+
+            if identity_match is None:
+                return None
+
+            # Only replace the internal lookup reference.
+            # original_requested_road remains the audit value.
+            requested_road = identity_match.current_reference
+
+            results = self._search_nominatim(
+                target=target,
+                requested_road=requested_road,
+            )
+
+            candidates = self._build_candidates(
+                results=results,
+                target=target,
+                requested_road=requested_road,
+            )
+
+            # A registry mapping without a current OSM match is
+            # not sufficient to resolve a road.
+            if not candidates:
+                return None
 
         candidates.sort(
             key=lambda candidate: (
@@ -174,6 +236,9 @@ class RoadResolver:
             )
         )
 
+        # ---------------------------------------------------------
+        # Step 2: Distance filtering.
+        # ---------------------------------------------------------
         nearby_candidates = [
             candidate
             for candidate in candidates
@@ -204,10 +269,14 @@ class RoadResolver:
             )
 
             return ResolvedRoad(
-                requested_name=requested_road,
+                requested_name=original_requested_road,
                 osm_way_ids=(),
                 roads=(),
-                method="NOMINATIM_ROAD",
+                method=(
+                    "ROAD_IDENTITY_REGISTRY"
+                    if identity_match is not None
+                    else "NOMINATIM_ROAD"
+                ),
                 confidence="UNRESOLVED",
                 distance_km=distance_km,
                 matched_name=nearest.name,
@@ -248,10 +317,14 @@ class RoadResolver:
             )
         except requests.RequestException as exc:
             return ResolvedRoad(
-                requested_name=requested_road,
+                requested_name=original_requested_road,
                 osm_way_ids=(),
                 roads=(),
-                method="NOMINATIM_ROAD_OVERPASS_UNAVAILABLE",
+                method=(
+                    "ROAD_IDENTITY_REGISTRY_OVERPASS_UNAVAILABLE"
+                    if identity_match is not None
+                    else "NOMINATIM_ROAD_OVERPASS_UNAVAILABLE"
+                ),
                 confidence="UNRESOLVED",
                 distance_km=distance_km,
                 matched_name=selected.name,
@@ -260,6 +333,14 @@ class RoadResolver:
                 expansion_error=str(exc),
             )
 
+        # ---------------------------------------------------------
+        # Step 3: Exact OSM road identity validation.
+        #
+        # IMPORTANT:
+        # For a registry mapping such as SH57 -> NH67, validation
+        # happens against NH67 because NH67 is now the current
+        # registered identity.
+        # ---------------------------------------------------------
         seed_roads = self._validate_roads(
             roads=seed_roads,
             requested_road=requested_road,
@@ -267,10 +348,14 @@ class RoadResolver:
 
         if not seed_roads:
             return ResolvedRoad(
-                requested_name=requested_road,
+                requested_name=original_requested_road,
                 osm_way_ids=(),
                 roads=(),
-                method="NOMINATIM_ROAD",
+                method=(
+                    "ROAD_IDENTITY_REGISTRY"
+                    if identity_match is not None
+                    else "NOMINATIM_ROAD"
+                ),
                 confidence="UNRESOLVED",
                 distance_km=distance_km,
                 matched_name=selected.name,
@@ -316,8 +401,21 @@ class RoadResolver:
             expanded_roads = seed_roads
             expansion_status = "DISABLED"
 
+        if identity_match is not None:
+            method = (
+                "ROAD_IDENTITY_REGISTRY_CONNECTED"
+                if expansion_status == "SUCCESS"
+                else "ROAD_IDENTITY_REGISTRY_SEED"
+            )
+        else:
+            method = (
+                "NOMINATIM_ROAD_CONNECTED"
+                if expansion_status == "SUCCESS"
+                else "NOMINATIM_ROAD_SEED"
+            )
+
         return ResolvedRoad(
-            requested_name=requested_road,
+            requested_name=original_requested_road,
             osm_way_ids=tuple(
                 sorted(
                     {
@@ -329,11 +427,7 @@ class RoadResolver:
             roads=tuple(
                 expanded_roads
             ),
-            method=(
-                "NOMINATIM_ROAD_CONNECTED"
-                if expansion_status == "SUCCESS"
-                else "NOMINATIM_ROAD_SEED"
-            ),
+            method=method,
             confidence=confidence,
             distance_km=distance_km,
             matched_name=selected.name,

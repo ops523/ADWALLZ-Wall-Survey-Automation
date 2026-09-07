@@ -230,3 +230,114 @@ def test_no_nominatim_candidate_returns_none():
     )
 
     assert result is None
+def test_verified_historical_road_identity_resolves_current_osm_road():
+    target = SurveyTarget(
+        state="Andhra Pradesh",
+        district="Nellore",
+        pincode="524322",
+        place_name="Atmakur",
+        road_name="SH57",
+    )
+
+    geocoder = FakeGeocoder(
+        [
+            {
+                "osm_type": "way",
+                "osm_id": 291808170,
+                "lat": "14.669176",
+                "lon": "79.5743613",
+                "display_name": (
+                    "NH67, Atmakur, Nellore, "
+                    "Andhra Pradesh, 524322, India"
+                ),
+                "namedetails": {
+                    "name": "NH67",
+                    "ref": "NH67",
+                },
+                "address": {
+                    "road": "NH67",
+                    "postcode": "524322",
+                    "district": "Nellore",
+                    "state": "Andhra Pradesh",
+                },
+            }
+        ]
+    )
+
+    osm = FakeOSM(
+        {
+            "elements": [
+                {
+                    "type": "way",
+                    "id": 291808170,
+                    "tags": {
+                        "highway": "trunk",
+                        "ref": "NH67",
+                    },
+                    "geometry": [
+                        {
+                            "lat": 14.669,
+                            "lon": 79.574,
+                        },
+                        {
+                            "lat": 14.670,
+                            "lon": 79.575,
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+
+    resolver = RoadResolver(
+        geocoder=geocoder,
+        osm_client=osm,
+        road_search_radius_km=20,
+        confident_radius_km=20,
+        expansion_depth=0,
+    )
+
+    result = resolver.resolve(
+        target=target,
+        requested_road="SH57",
+        origin_latitude=14.669176,
+        origin_longitude=79.5743613,
+    )
+
+    assert result is not None
+    assert result.requested_name == "SH57"
+    assert result.matched_reference == "NH67"
+    assert result.osm_way_ids == (291808170,)
+    assert result.method == "ROAD_IDENTITY_REGISTRY_SEED"
+
+
+def test_historical_identity_is_not_cross_applied_to_nandyal_atmakur():
+    target = SurveyTarget(
+        state="Andhra Pradesh",
+        district="Nandyal",
+        pincode="518422",
+        place_name="Atmakur",
+        road_name="SH57",
+    )
+
+    geocoder = FakeGeocoder([])
+
+    osm = FakeOSM(
+        {
+            "elements": []
+        }
+    )
+
+    resolver = RoadResolver(
+        geocoder=geocoder,
+        osm_client=osm,
+    )
+
+    result = resolver.resolve(
+        target=target,
+        requested_road="SH57",
+        origin_latitude=15.9149208,
+        origin_longitude=78.7079658,
+    )
+
+    assert result is None
