@@ -1,0 +1,732 @@
+{
+  "annotation_tool_version": "4.2C.1",
+  "polygon_format_version": "1.0",
+  "dataset_version": "4.2.0",
+  "annotation_version": "1.0.0",
+  "name": "highrise_wall_reference_annotations",
+  "source_prep_manifest": "manifests/annotation_prep_manifest.json",
+  "split": "unassigned",
+  "image_count": 25,
+  "counts": {
+    "annotated": 10,
+    "no_target": 15
+  },
+  "description": "Human polygon annotations for High-Rise first-floor-and-above wall_surface detection. Positive images require clean human polygons. Negative and hard-negative images are explicit no-target records. No polygons are generated automatically. Dataset splits remain unassigned until annotation and scene relationships are reviewed.",
+  "images": [
+    {
+      "image_id": "1",
+      "relative_path": "images/positive/1.jpeg",
+      "category": "positive",
+      "scene_group": "scene-1",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "annotated",
+      "annotator": "Wall 1 Metpally",
+      "annotations": [
+        {
+          "annotation_id": "1-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.5459940652818991,
+              "y": 0.17828882294757667
+            },
+            {
+              "x": 0.7299703264094956,
+              "y": 0.18356412792614574
+            },
+            {
+              "x": 0.7289812067260139,
+              "y": 0.2890702274975272
+            },
+            {
+              "x": 0.5519287833827893,
+              "y": 0.293026706231454
+            },
+            {
+              "x": 0.5450049455984174,
+              "y": 0.17960764919221892
+            }
+          ],
+          "annotator": "Wall 1 Metpally",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:14:56.081363+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "10",
+      "relative_path": "images/positive/10.jpeg",
+      "category": "positive",
+      "scene_group": "scene-10",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "annotated",
+      "annotator": "Wall 1 Vemulawada",
+      "annotations": [
+        {
+          "annotation_id": "10-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.010880316518298714,
+              "y": 0.1637817342565117
+            },
+            {
+              "x": 0.7082096933728981,
+              "y": 0.07014507088691065
+            },
+            {
+              "x": 0.6923837784371909,
+              "y": 0.4948071216617211
+            },
+            {
+              "x": 0.005934718100890208,
+              "y": 0.5066765578635015
+            },
+            {
+              "x": 0.009891196834817012,
+              "y": 0.1637817342565117
+            }
+          ],
+          "annotator": "Wall 1 Vemulawada",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:26:37.172795+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "10a",
+      "relative_path": "images/negative/10a.jpeg",
+      "category": "negative",
+      "scene_group": "scene-10a",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "11",
+      "relative_path": "images/positive/11.jpeg",
+      "category": "positive",
+      "scene_group": "scene-11",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "annotated",
+      "annotator": "Wall 1 Medak",
+      "annotations": [
+        {
+          "annotation_id": "11-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.36993076162215627,
+              "y": 0.2706066600725354
+            },
+            {
+              "x": 0.6775469831849654,
+              "y": 0.3088526211671612
+            },
+            {
+              "x": 0.6745796241345203,
+              "y": 0.5027200791295747
+            },
+            {
+              "x": 0.3560830860534125,
+              "y": 0.4803000329706561
+            },
+            {
+              "x": 0.36993076162215627,
+              "y": 0.27324431256181997
+            }
+          ],
+          "annotator": "Wall 1 Medak",
+          "source": "human_reference",
+          "notes": ""
+        },
+        {
+          "annotation_id": "11-poly-2",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.39564787339268054,
+              "y": 0.07146389713155292
+            },
+            {
+              "x": 0.5578635014836796,
+              "y": 0.08992746455654467
+            },
+            {
+              "x": 0.552917903066271,
+              "y": 0.2138971315529179
+            },
+            {
+              "x": 0.380811078140455,
+              "y": 0.20334652159577976
+            },
+            {
+              "x": 0.39564787339268054,
+              "y": 0.06882624464226839
+            }
+          ],
+          "annotator": "Wall 1 Medak",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:23:30.591565+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "12",
+      "relative_path": "images/hard_negative/12.jpeg",
+      "category": "hard_negative",
+      "scene_group": "scene-12",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "13",
+      "relative_path": "images/negative/13.jpeg",
+      "category": "negative",
+      "scene_group": "scene-13",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "14",
+      "relative_path": "images/hard_negative/14.jpeg",
+      "category": "hard_negative",
+      "scene_group": "scene-14",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "15",
+      "relative_path": "images/negative/15.jpeg",
+      "category": "negative",
+      "scene_group": "scene-15",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "16",
+      "relative_path": "images/negative/16.jpeg",
+      "category": "negative",
+      "scene_group": "scene-16",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "17",
+      "relative_path": "images/negative/17.jpeg",
+      "category": "negative",
+      "scene_group": "scene-17",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "18",
+      "relative_path": "images/negative/18.jpeg",
+      "category": "negative",
+      "scene_group": "scene-18",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "19",
+      "relative_path": "images/positive/19.jpeg",
+      "category": "positive",
+      "scene_group": "scene-19",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "annotated",
+      "annotator": "Wall 1 Saradhi",
+      "annotations": [
+        {
+          "annotation_id": "19-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.3264094955489614,
+              "y": 0.2600560501153973
+            },
+            {
+              "x": 0.8961424332344213,
+              "y": 0.28775140125288495
+            },
+            {
+              "x": 0.887240356083086,
+              "y": 0.4763435542367293
+            },
+            {
+              "x": 0.31750741839762614,
+              "y": 0.49216946917243654
+            },
+            {
+              "x": 0.3254203758654797,
+              "y": 0.2600560501153973
+            }
+          ],
+          "annotator": "Wall 1 Saradhi",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:27:20.612574+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "2",
+      "relative_path": "images/positive/2.jpeg",
+      "category": "positive",
+      "scene_group": "scene-2",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "annotated",
+      "annotator": "Wall 2 Metpally",
+      "annotations": [
+        {
+          "annotation_id": "2-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.7091988130563798,
+              "y": 0.2969831849653808
+            },
+            {
+              "x": 0.7111770524233432,
+              "y": 0.38534454335641277
+            },
+            {
+              "x": 0.8180019782393669,
+              "y": 0.3932575008242664
+            },
+            {
+              "x": 0.8150346191889218,
+              "y": 0.29962083745466533
+            },
+            {
+              "x": 0.7101879327398615,
+              "y": 0.29566435872073854
+            }
+          ],
+          "annotator": "Wall 2 Metpally",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:16:58.190628+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "20",
+      "relative_path": "images/negative/20.jpeg",
+      "category": "negative",
+      "scene_group": "scene-20",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "21",
+      "relative_path": "images/negative/21.jpeg",
+      "category": "negative",
+      "scene_group": "scene-21",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "22",
+      "relative_path": "images/negative/22.jpeg",
+      "category": "negative",
+      "scene_group": "scene-22",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "23",
+      "relative_path": "images/positive/23.jpeg",
+      "category": "positive",
+      "scene_group": "scene-23",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "annotated",
+      "annotator": "Wall 1 Gadwal",
+      "annotations": [
+        {
+          "annotation_id": "23-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.24629080118694363,
+              "y": 0.21917243653148696
+            },
+            {
+              "x": 0.5202769535113749,
+              "y": 0.14795581932080448
+            },
+            {
+              "x": 0.5321463897131553,
+              "y": 0.3602868447082097
+            },
+            {
+              "x": 0.23738872403560832,
+              "y": 0.3642433234421365
+            },
+            {
+              "x": 0.2443125618199802,
+              "y": 0.21917243653148696
+            }
+          ],
+          "annotator": "Wall 1 Gadwal",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:27:58.029658+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "24",
+      "relative_path": "images/negative/24.jpeg",
+      "category": "negative",
+      "scene_group": "scene-24",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "3",
+      "relative_path": "images/positive/3.jpeg",
+      "category": "positive",
+      "scene_group": "scene-3",
+      "image_width": 1280,
+      "image_height": 963,
+      "status": "annotated",
+      "annotator": "Wall 1 Atmakur",
+      "annotations": [
+        {
+          "annotation_id": "3-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.4747847858677341,
+              "y": 0.10674007272129665
+            },
+            {
+              "x": 0.5796330927468587,
+              "y": 0.11988742578935475
+            },
+            {
+              "x": 0.5796330927468587,
+              "y": 0.19088313235686846
+            },
+            {
+              "x": 0.4718173809560608,
+              "y": 0.18825366174325683
+            },
+            {
+              "x": 0.47379565089717635,
+              "y": 0.10674007272129665
+            }
+          ],
+          "annotator": "Wall 1 Atmakur",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:18:57.494748+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "4",
+      "relative_path": "images/positive/4.jpeg",
+      "category": "positive",
+      "scene_group": "scene-4",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "annotated",
+      "annotator": "Wall 3 Metpally",
+      "annotations": [
+        {
+          "annotation_id": "4-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.08605341246290801,
+              "y": 0.2666501813386086
+            },
+            {
+              "x": 0.2868447082096934,
+              "y": 0.2666501813386086
+            },
+            {
+              "x": 0.2898120672601385,
+              "y": 0.39061984833498187
+            },
+            {
+              "x": 0.0830860534124629,
+              "y": 0.3879821958456973
+            },
+            {
+              "x": 0.08506429277942631,
+              "y": 0.2653313550939664
+            }
+          ],
+          "annotator": "Wall 3 Metpally",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:28:42.979206+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "5",
+      "relative_path": "images/positive/5.jpeg",
+      "category": "positive",
+      "scene_group": "scene-5",
+      "image_width": 1200,
+      "image_height": 1600,
+      "status": "annotated",
+      "annotator": "Wall 4 Metpally",
+      "annotations": [
+        {
+          "annotation_id": "5-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.13056379821958458,
+              "y": 0.2805545252225519
+            },
+            {
+              "x": 0.6488625123639961,
+              "y": 0.28203820474777447
+            },
+            {
+              "x": 0.6389713155291791,
+              "y": 0.4786257418397626
+            },
+            {
+              "x": 0.11374876360039565,
+              "y": 0.47120734421364985
+            },
+            {
+              "x": 0.12858555885262116,
+              "y": 0.2812963649851632
+            }
+          ],
+          "annotator": "Wall 4 Metpally",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:29:22.262366+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    },
+    {
+      "image_id": "6",
+      "relative_path": "images/hard_negative/6.jpeg",
+      "category": "hard_negative",
+      "scene_group": "scene-6",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "7",
+      "relative_path": "images/negative/7.jpeg",
+      "category": "negative",
+      "scene_group": "scene-7",
+      "image_width": 1200,
+      "image_height": 1600,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "8",
+      "relative_path": "images/negative/8.jpeg",
+      "category": "negative",
+      "scene_group": "scene-8",
+      "image_width": 1200,
+      "image_height": 1600,
+      "status": "no_target",
+      "annotator": null,
+      "annotations": [],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": null,
+      "notes": "No wall_surface target annotation is created in preparation."
+    },
+    {
+      "image_id": "9",
+      "relative_path": "images/positive/9.jpeg",
+      "category": "positive",
+      "scene_group": "scene-9",
+      "image_width": 1600,
+      "image_height": 1200,
+      "status": "annotated",
+      "annotator": "Wall 2 Vemulawada",
+      "annotations": [
+        {
+          "annotation_id": "9-poly-1",
+          "class_name": "wall_surface",
+          "annotation_type": "polygon",
+          "polygon": [
+            {
+              "x": 0.03066271018793274,
+              "y": 0.3550115397296406
+            },
+            {
+              "x": 0.16913946587537093,
+              "y": 0.36292449719749426
+            },
+            {
+              "x": 0.1671612265084075,
+              "y": 0.4526046818331685
+            },
+            {
+              "x": 0.02274975272007913,
+              "y": 0.4380975931421035
+            },
+            {
+              "x": 0.03165182987141444,
+              "y": 0.35764919221892516
+            }
+          ],
+          "annotator": "Wall 2 Vemulawada",
+          "source": "human_reference",
+          "notes": ""
+        }
+      ],
+      "split": "unassigned",
+      "source": "highrise_wall_reference_v1",
+      "updated_at": "2026-09-15T14:30:03.193745+00:00",
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline."
+    }
+  ]
+}
