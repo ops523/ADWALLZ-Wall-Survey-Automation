@@ -1,0 +1,494 @@
+{
+  "annotation_version": "1.0.0",
+  "counts": {
+    "hard_negative": 3,
+    "negative": 12,
+    "pending_polygon": 10,
+    "positive": 10
+  },
+  "dataset_version": "4.2.0",
+  "description": "Human annotation preparation for High-Rise first-floor-and-above wall_surface detection. Positive images receive stable polygon tasks. Negative and hard-negative images receive explicit no-target tasks. No polygon coordinates are generated during preparation. Dataset splits remain unassigned until annotation and scene relationships are reviewed.",
+  "image_count": 25,
+  "name": "highrise_wall_reference_annotation_prep",
+  "polygon_format_version": "1.0",
+  "prep_version": "4.2B.1",
+  "source_classification_manifest": "manifests/classification_manifest.json",
+  "split": "unassigned",
+  "tasks": [
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-1-d689288ba78bf7d4",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1200,
+      "image_id": "1",
+      "image_width": 1600,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/1.jpeg",
+      "scene_group": "scene-1",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-10-eb85e18919d4e6b1",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1200,
+      "image_id": "10",
+      "image_width": 1600,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/10.jpeg",
+      "scene_group": "scene-10",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-10a-466f5eceabea8ea4",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "10a",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/10a.jpeg",
+      "scene_group": "scene-10a",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-11-1362e707f2ca4c23",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1200,
+      "image_id": "11",
+      "image_width": 1600,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/11.jpeg",
+      "scene_group": "scene-11",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-12-819affeee89156a1",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "hard_negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "12",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/hard_negative/12.jpeg",
+      "scene_group": "scene-12",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-13-3ae9f93a0bcdc797",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "13",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/13.jpeg",
+      "scene_group": "scene-13",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-14-f8694a31f92a1444",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "hard_negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "14",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/hard_negative/14.jpeg",
+      "scene_group": "scene-14",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-15-0f8399970a3fe28b",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "15",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/15.jpeg",
+      "scene_group": "scene-15",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-16-1ddcf833c53757af",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "16",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/16.jpeg",
+      "scene_group": "scene-16",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-17-7c492fef9e14e96f",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "17",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/17.jpeg",
+      "scene_group": "scene-17",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-18-c25bce7b2d28659b",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "18",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/18.jpeg",
+      "scene_group": "scene-18",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-19-b6d3256cc4e5f449",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1200,
+      "image_id": "19",
+      "image_width": 1600,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/19.jpeg",
+      "scene_group": "scene-19",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-2-2a67c8821e3049d6",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1200,
+      "image_id": "2",
+      "image_width": 1600,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/2.jpeg",
+      "scene_group": "scene-2",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-20-843b591b9d15cdd4",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "20",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/20.jpeg",
+      "scene_group": "scene-20",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-21-3aa54ffec06e4655",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "21",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/21.jpeg",
+      "scene_group": "scene-21",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-22-74ae1d4687d8ce8a",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "22",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/22.jpeg",
+      "scene_group": "scene-22",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-23-c9d0bdf748c92a23",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1200,
+      "image_id": "23",
+      "image_width": 1600,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/23.jpeg",
+      "scene_group": "scene-23",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-24-bc05188e763f2583",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "24",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/24.jpeg",
+      "scene_group": "scene-24",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-3-5df0ed26aabdb06a",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 963,
+      "image_id": "3",
+      "image_width": 1280,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/3.jpeg",
+      "scene_group": "scene-3",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-4-19e09e969f8cddb3",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1200,
+      "image_id": "4",
+      "image_width": 1600,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/4.jpeg",
+      "scene_group": "scene-4",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-5-eeabd0aaecfbee5e",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1600,
+      "image_id": "5",
+      "image_width": 1200,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/5.jpeg",
+      "scene_group": "scene-5",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-6-310e79becd7e89cc",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "hard_negative",
+      "expected_annotation_type": "none",
+      "image_height": 1200,
+      "image_id": "6",
+      "image_width": 1600,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/hard_negative/6.jpeg",
+      "scene_group": "scene-6",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-7-711fe382bb62c891",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1600,
+      "image_id": "7",
+      "image_width": 1200,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/7.jpeg",
+      "scene_group": "scene-7",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "none"
+      ],
+      "annotation_id": "ann-8-b5efafb782896bd9",
+      "annotation_status": "no_target",
+      "annotator": null,
+      "category": "negative",
+      "expected_annotation_type": "none",
+      "image_height": 1600,
+      "image_id": "8",
+      "image_width": 1200,
+      "notes": "No wall_surface target annotation is created in preparation.",
+      "polygon": null,
+      "relative_path": "images/negative/8.jpeg",
+      "scene_group": "scene-8",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    },
+    {
+      "allowed_annotation_types": [
+        "polygon"
+      ],
+      "annotation_id": "ann-9-855c78c308fcbe12",
+      "annotation_status": "pending",
+      "annotator": null,
+      "category": "positive",
+      "expected_annotation_type": "polygon",
+      "image_height": 1200,
+      "image_id": "9",
+      "image_width": 1600,
+      "notes": "Human-clean polygon required; do not copy hand-drawn reference outline.",
+      "polygon": null,
+      "relative_path": "images/positive/9.jpeg",
+      "scene_group": "scene-9",
+      "source": "highrise_wall_reference_v1",
+      "split": "unassigned"
+    }
+  ]
+}
